@@ -1251,7 +1251,8 @@ void loop() {
   // through. A menu peeks the pet up top for preview; an approval shows it
   // full-size like the classic alert.
   bool overlayNow  = menuOpen || settingsOpen || resetOpen;
-  bool approvalNow = tama.promptId[0];
+  bool approvalNow = inPrompt;   // use inPrompt (factors in responseSent) so
+                                  // the approval screen clears after approve/deny
   uint8_t lowerOwner = overlayNow ? 2 : (approvalNow ? 1 : 0);
   static uint8_t prevLowerOwner = 0;
   if (lowerOwner != prevLowerOwner) {
@@ -1302,7 +1303,7 @@ void loop() {
     // ~90% during idle. Keep our richer draw stack (overlay/approval/menu peek).
     static uint32_t lastPushMs = 0;
     bool active = tama.sessionsRunning > 0 || tama.sessionsWaiting > 0
-               || overlayNow || approvalNow || inPrompt || blePasskey();
+               || overlayNow || approvalNow || blePasskey();
     bool pushDue = active || (now - lastPushMs >= 200);
     if (pushDue) {
       if (blePasskey()) drawPasskey();
@@ -1375,7 +1376,8 @@ void loop() {
   // screen is off — stacks with the 80MHz screen-off CPU drop above for
   // significant battery savings. (wake() restores 160MHz.)
   if (screenOff || napping) {
-    delay(500);
+    delay(100);   // 100ms keeps button detection reliable while still saving
+                  // power — at 80MHz with screen off, BLE dominates draw anyway
   } else if (tama.sessionsRunning == 0 && tama.sessionsWaiting == 0
              && !menuOpen && !settingsOpen && !resetOpen && !inPrompt) {
     delay(100);   // ~10 FPS idle — clock, pet animation, face-down check
