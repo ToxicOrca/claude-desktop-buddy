@@ -1318,6 +1318,19 @@ void loop() {
 
   // blink bookkeeping
 
+  // Periodic battery report to the bridge app (every 30s).
+  static uint32_t lastBatReport = 0;
+  if (now - lastBatReport >= 30000) {
+    lastBatReport = now;
+    int vBat = (int)(M5.Axp.GetBatVoltage() * 1000);
+    int pct = (vBat - 3200) / 10;
+    if (pct < 0) pct = 0; if (pct > 100) pct = 100;
+    bool usb = M5.Axp.GetVBusVoltage() > 4.0f;
+    char bat[64];
+    snprintf(bat, sizeof(bat), "{\"battery\":%d,\"charging\":%s}", pct, usb ? "true" : "false");
+    sendCmd(bat);
+  }
+
   // Charging clock: takes over the home screen when on USB power, no
   // overlays, no prompt, no live Claude data, and the RTC has been set
   // by the bridge. Pet sleeps underneath. Exit restores Y via
