@@ -1553,6 +1553,7 @@ void loop() {
 #if SCREEN_OFF_USE_LIGHTSLEEP
     esp_sleep_enable_timer_wakeup(LIGHTSLEEP_US);
     esp_light_sleep_start();
+    M5.Beep.update();  // stop any tone that started before sleep
 #ifdef BUDDY_BENCH
     { float i = M5.Axp.GetVBusCurrent();
       static float sum = 0; static uint32_t n = 0, last = 0;
