@@ -1319,8 +1319,10 @@ void loop() {
   // blink bookkeeping
 
   // Periodic battery report to the bridge app (every 30s).
+  // Skip while screen is off — saves BLE traffic during light sleep and
+  // avoids bleWrite at 40MHz which can cause watchdog resets.
   static uint32_t lastBatReport = 0;
-  if (now - lastBatReport >= 30000) {
+  if (!screenOff && !napping && now - lastBatReport >= 30000) {
     lastBatReport = now;
     int vBat = (int)(M5.Axp.GetBatVoltage() * 1000);
     int pct = (vBat - 3200) / 10;
@@ -1551,9 +1553,11 @@ void loop() {
   // (wake() restores 160MHz.)
   if (screenOff || napping) {
 #if SCREEN_OFF_USE_LIGHTSLEEP
+    M5.Beep.mute();    // silence speaker before sleeping — tone() during
+                       // sleep plays continuously until the next wake cycle
     esp_sleep_enable_timer_wakeup(LIGHTSLEEP_US);
     esp_light_sleep_start();
-    M5.Beep.update();  // stop any tone that started before sleep
+    M5.Beep.update();  // process any pending tone state after wake
 #ifdef BUDDY_BENCH
     { float i = M5.Axp.GetVBusCurrent();
       static float sum = 0; static uint32_t n = 0, last = 0;
