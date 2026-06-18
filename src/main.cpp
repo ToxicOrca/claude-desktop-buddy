@@ -1326,8 +1326,20 @@ void loop() {
     int pct = (vBat - 3200) / 10;
     if (pct < 0) pct = 0; if (pct > 100) pct = 100;
     bool usb = M5.Axp.GetVBusVoltage() > 4.0f;
-    char bat[64];
-    snprintf(bat, sizeof(bat), "{\"battery\":%d,\"charging\":%s}", pct, usb ? "true" : "false");
+    // Include runtime estimate from coulomb counter when on battery
+    int remMin = -1;
+    if (!usb && battSessStartMs) {
+      uint32_t es = (now - battSessStartMs) / 1000;
+      float used = battSessStartCoulomb - M5.Axp.GetCoulombData();
+      if (used < 0) used = 0;
+      if (es > 30 && used > 0.05f) {
+        float avg = used * 3600.0f / es;
+        remMin = (int)((pct / 100.0f) * 120.0f / avg * 60.0f);
+      }
+    }
+    char bat[96];
+    snprintf(bat, sizeof(bat), "{\"battery\":%d,\"charging\":%s,\"remMin\":%d}",
+             pct, usb ? "true" : "false", remMin);
     sendCmd(bat);
   }
 
